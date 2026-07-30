@@ -11,6 +11,13 @@ type Status = "idle" | "working" | "shared" | "downloaded" | "error";
  * navigator.share with files is the mobile path (iOS Safari 15+, Android
  * Chrome). Desktop browsers mostly can't share files, so there we download the
  * PNG instead and the person drags it into the chat.
+ *
+ * In-app browsers (Messenger, Instagram, and similar embedded webviews) often
+ * pass the canShare() feature check but then reject the actual share() call
+ * with a NotAllowedError — the host app restricts the Web Share API even
+ * though the API exists. That's caught here and treated the same as "no
+ * share support": fall back to download rather than surface a raw platform
+ * error the entrant can't act on.
  */
 export function ShareButton({
   complete,
@@ -49,9 +56,19 @@ export function ShareButton({
         typeof navigator !== "undefined" &&
         navigator.canShare?.({ files: [file] })
       ) {
-        await navigator.share({ files: [file], text });
-        setStatus("shared");
-        return;
+        try {
+          await navigator.share({ files: [file], text });
+          setStatus("shared");
+          return;
+        } catch (shareErr) {
+          // Cancelling the share sheet throws AbortError — not a failure.
+          if (shareErr instanceof DOMException && shareErr.name === "AbortError") {
+            setStatus("idle");
+            return;
+          }
+          // Anything else (typically NotAllowedError from an in-app browser
+          // that blocks sharing) falls through to the download below.
+        }
       }
 
       const url = URL.createObjectURL(blob);
@@ -62,11 +79,6 @@ export function ShareButton({
       URL.revokeObjectURL(url);
       setStatus("downloaded");
     } catch (e) {
-      // A cancelled share sheet throws AbortError. That isn't a failure.
-      if (e instanceof DOMException && e.name === "AbortError") {
-        setStatus("idle");
-        return;
-      }
       setStatus("error");
       setDetail(e instanceof Error ? e.message : "Something went wrong.");
     }
@@ -86,7 +98,7 @@ export function ShareButton({
         {status === "shared"
           ? "Sent"
           : status === "downloaded"
-            ? "PNG saved — drop it in the chat"
+            ? "PNG downloaded — drop it in the chat. If nothing happened, open this page in Safari or Chrome instead of the app browser, then try again"
             : status === "error"
               ? (detail ?? "Couldn't make the card")
               : "Sends a branded PNG to your group chat"}
