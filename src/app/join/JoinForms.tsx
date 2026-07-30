@@ -88,7 +88,11 @@ export function JoinForms({ roster }: { roster: Roster }) {
             <span className="qt">Claim your name</span>
           </div>
           <div className="qbody">
-            {unclaimed.length === 0 ? (
+            {roster.length === 0 ? (
+              <p className="help" style={{ marginBottom: 0 }}>
+                Nobody&apos;s been added yet. Ask the admin to set up the roster.
+              </p>
+            ) : unclaimed.length === 0 ? (
               <p className="help" style={{ marginBottom: 0 }}>
                 Every name is taken. If one of them is yours, switch to
                 &ldquo;I&apos;ve already joined&rdquo;. If you should be on the

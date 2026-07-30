@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Banner } from "@/components/Banner";
 import { Countdown } from "@/components/Countdown";
 import { SetupNotice } from "@/components/SetupNotice";
-import { getEntrants, isLocked, loadActiveSeason } from "@/lib/data";
+import { getEntrants, isLocked, isPlaceholderEntrant, loadActiveSeason } from "@/lib/data";
 import { getSessionEntrantId } from "@/lib/entrant-auth";
 import { JoinForms, type Roster } from "./JoinForms";
 
@@ -19,8 +19,12 @@ export default async function JoinPage() {
   // Already signed in on this device? Nothing to do here.
   if (await getSessionEntrantId()) redirect("/picks");
 
-  const entrants = await getEntrants(season.id);
+  const allEntrants = await getEntrants(season.id);
   const locked = isLocked(season);
+
+  // Seeded slots the admin hasn't renamed yet aren't real people — don't let
+  // anyone claim "Entrant 6" as their identity.
+  const entrants = allEntrants.filter((e) => !isPlaceholderEntrant(e.display_name));
 
   const roster: Roster = entrants.map((e) => ({
     id: e.id,

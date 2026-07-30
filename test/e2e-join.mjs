@@ -45,6 +45,14 @@ const browser = await chromium.launch(
 // Fresh state: nobody has joined.
 await sql`update seasons set lock_at = '2026-08-21T19:00:00Z' where id = 1`;
 await sql`update entrants set pin_hash = null, claimed_at = null, pin_failures = 0, pin_locked_until = null`;
+
+// The join and home pages hide entrants still named "Entrant N" (unrenamed
+// seed placeholders) — that's the whole point, an admin who hasn't set up the
+// roster yet shouldn't have placeholders showing as real people. Rename the two
+// this test drives, exactly as an admin would, so they're visible to claim.
+const seeded = await sql`select id from entrants order by id limit 2`;
+await sql`update entrants set display_name = 'Alice' where id = ${seeded[0].id}`;
+await sql`update entrants set display_name = 'Bob' where id = ${seeded[1].id}`;
 const roster = await sql`select id, display_name from entrants order by display_name limit 2`;
 const [alice, bob] = roster;
 

@@ -2,7 +2,13 @@ import Link from "next/link";
 import { Banner } from "@/components/Banner";
 import { Countdown } from "@/components/Countdown";
 import { initials } from "@/components/Shirt";
-import { getEntrants, getQuestions, isLocked, loadActiveSeason } from "@/lib/data";
+import {
+  getEntrants,
+  getQuestions,
+  isLocked,
+  isPlaceholderEntrant,
+  loadActiveSeason,
+} from "@/lib/data";
 import { maxPoints, scoringLine } from "@/lib/questions";
 import { SetupNotice } from "@/components/SetupNotice";
 
@@ -12,10 +18,13 @@ export default async function HomePage() {
   const { season, error } = await loadActiveSeason();
   if (!season) return <SetupNotice error={error} />;
 
-  const [questions, entrants] = await Promise.all([
+  const [questions, allEntrants] = await Promise.all([
     getQuestions(season.id),
     getEntrants(season.id),
   ]);
+  // Seeded slots the admin hasn't renamed yet are placeholders, not entrants —
+  // keep them off every page a player sees.
+  const entrants = allEntrants.filter((e) => !isPlaceholderEntrant(e.display_name));
 
   const locked = isLocked(season);
   const totals = maxPoints(
@@ -92,7 +101,11 @@ export default async function HomePage() {
         <h2 style={{ margin: "34px 0 14px" }}>Who&apos;s in</h2>
         {entrants.length === 0 ? (
           <div className="empty">
-            <p>Nobody seeded yet</p>
+            <p>
+              {allEntrants.length === 0
+                ? "Nobody seeded yet"
+                : "Names not set yet"}
+            </p>
           </div>
         ) : (
           <div className="two">

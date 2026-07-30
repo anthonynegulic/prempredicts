@@ -33,6 +33,17 @@ export type Entrant = {
   has_pin: boolean;
 };
 
+/**
+ * True for a seeded slot the admin hasn't renamed yet — display_name still
+ * matches db/seed.ts's `Entrant ${i}` template exactly. Used to keep unfilled
+ * placeholder slots off every list a player sees (the home roster, the /join
+ * claim list) while admin still shows every row so there's something to rename.
+ */
+const PLACEHOLDER_NAME = /^Entrant \d+$/;
+export function isPlaceholderEntrant(displayName: string): boolean {
+  return PLACEHOLDER_NAME.test(displayName.trim());
+}
+
 export type Pick = {
   id: number;
   question_id: number;
