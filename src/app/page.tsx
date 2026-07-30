@@ -2,15 +2,15 @@ import Link from "next/link";
 import { Banner } from "@/components/Banner";
 import { Countdown } from "@/components/Countdown";
 import { initials } from "@/components/Shirt";
-import { getActiveSeason, getEntrants, getQuestions, isLocked } from "@/lib/data";
+import { getEntrants, getQuestions, isLocked, loadActiveSeason } from "@/lib/data";
 import { maxPoints, scoringLine } from "@/lib/questions";
 import { SetupNotice } from "@/components/SetupNotice";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const season = await getActiveSeason().catch(() => null);
-  if (!season) return <SetupNotice />;
+  const { season, error } = await loadActiveSeason();
+  if (!season) return <SetupNotice error={error} />;
 
   const [questions, entrants] = await Promise.all([
     getQuestions(season.id),

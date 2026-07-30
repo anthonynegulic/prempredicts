@@ -4,7 +4,7 @@ import { Countdown } from "@/components/Countdown";
 import { SetupNotice } from "@/components/SetupNotice";
 import { Shirt } from "@/components/Shirt";
 import { clubTag, shortClub } from "@/lib/clubs";
-import { getActiveSeason, getBoard, type Board, type BoardEntrant } from "@/lib/data";
+import { getBoard, loadActiveSeason, type Board, type BoardEntrant } from "@/lib/data";
 import type { ScoredPick } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +41,8 @@ function tally(board: Board, key: string) {
 }
 
 export default async function BoardPage() {
-  const season = await getActiveSeason().catch(() => null);
-  if (!season) return <SetupNotice />;
+  const { season, error } = await loadActiveSeason();
+  if (!season) return <SetupNotice error={error} />;
 
   const board = await getBoard(season);
 

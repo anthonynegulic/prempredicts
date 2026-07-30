@@ -7,12 +7,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import postgres from "postgres";
+import { requireEnv } from "./env";
 
 async function main() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set.");
+  const url = requireEnv("DATABASE_URL");
 
-  const sql = postgres(url, { max: 1 });
+  // Every statement is `if not exists`, so re-running emits a NOTICE per
+  // existing table. They're expected and they look like errors — bin them.
+  const sql = postgres(url, { max: 1, onnotice: () => {} });
   const schema = readFileSync(join(process.cwd(), "db", "schema.sql"), "utf8");
 
   try {

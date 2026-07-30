@@ -2,14 +2,14 @@ import Link from "next/link";
 import { Banner } from "@/components/Banner";
 import { SetupNotice } from "@/components/SetupNotice";
 import { CLUBS } from "@/lib/clubs";
-import { getActiveSeason, getQuestions } from "@/lib/data";
+import { getQuestions, loadActiveSeason } from "@/lib/data";
 import { maxPoints, scoringLine } from "@/lib/questions";
 
 export const dynamic = "force-dynamic";
 
 export default async function RulesPage() {
-  const season = await getActiveSeason().catch(() => null);
-  if (!season) return <SetupNotice />;
+  const { season, error } = await loadActiveSeason();
+  if (!season) return <SetupNotice error={error} />;
 
   const questions = await getQuestions(season.id);
   const totals = maxPoints(

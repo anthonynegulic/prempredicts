@@ -21,6 +21,11 @@ npm run db:seed                   # season, ten questions, 8 placeholder entrant
 `db:seed` prints one magic link per entrant. Rename the placeholders in `/admin`,
 then DM the links out.
 
+Both `db:` scripts read `.env.local` themselves (via `db/env.ts`) — tsx, unlike
+Next's dev server, does not load env files on its own. The loader tolerates CRLF,
+BOMs and quoted values, and says so plainly if the file got saved as rich text
+rather than plain text, which is the usual TextEdit accident.
+
 ```bash
 npm run dev
 npm test                          # scoring rules

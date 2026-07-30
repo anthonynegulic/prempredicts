@@ -57,6 +57,22 @@ export async function getActiveSeason(): Promise<Season | null> {
   return rows[0] ?? null;
 }
 
+/**
+ * getActiveSeason, but reporting *why* there's no season. A missing season and
+ * an unreachable database look the same to a page and need opposite fixes, so
+ * the setup notice needs to tell them apart.
+ */
+export async function loadActiveSeason(): Promise<{
+  season: Season | null;
+  error: string | null;
+}> {
+  try {
+    return { season: await getActiveSeason(), error: null };
+  } catch (e) {
+    return { season: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** Single source of truth for the lock. Compared in UTC, always server-side. */
 export function isLocked(season: Season, now: Date = new Date()): boolean {
   return now.getTime() >= new Date(season.lock_at).getTime();

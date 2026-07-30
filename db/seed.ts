@@ -7,6 +7,7 @@
  */
 import { randomBytes } from "node:crypto";
 import postgres from "postgres";
+import { requireEnv } from "./env";
 import { QUESTIONS } from "../src/lib/questions";
 
 const SEASON_LABEL = "2026-27";
@@ -19,8 +20,7 @@ function token() {
 }
 
 async function main() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set.");
+  const url = requireEnv("DATABASE_URL");
   const sql = postgres(url, { max: 1 });
 
   try {
