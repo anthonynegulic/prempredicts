@@ -1,6 +1,5 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -24,8 +23,6 @@ function slugify(name: string): string {
       .replace(/^-|-$/g, "") || "entrant"
   );
 }
-
-const token = () => randomBytes(16).toString("base64url");
 
 export async function login(
   _prev: ActionState,
@@ -71,8 +68,8 @@ export async function createEntrant(
   }
 
   await sql`
-    insert into entrants (season_id, display_name, slug, magic_token, club_affiliation)
-    values (${season.id}, ${name}, ${slug}, ${token()}, ${club})
+    insert into entrants (season_id, display_name, slug, club_affiliation)
+    values (${season.id}, ${name}, ${slug}, ${club})
   `;
   revalidatePath("/admin");
   return { ok: `${name} added.` };
@@ -101,17 +98,30 @@ export async function updateEntrant(
   return { ok: `${name} saved.` };
 }
 
-/** Invalidates the old link immediately. Use when someone leaks or loses theirs. */
-export async function regenerateToken(
+/**
+ * Releases a name so it can be claimed again, and clears its PIN. Use when
+ * somebody forgets their PIN, or claimed the wrong name.
+ *
+ * Picks are deliberately left alone — they belong to the name, not the session,
+ * so whoever re-claims it picks up the existing entry. That is the right
+ * behaviour for a forgotten PIN and the reason the confirm copy spells it out.
+ */
+export async function resetEntrantAccess(
   _prev: ActionState,
   form: FormData
 ): Promise<ActionState> {
   await requireAdmin();
   const id = Number(form.get("entrant_id"));
   if (!Number.isInteger(id)) return { error: "Bad entrant." };
-  await sql`update entrants set magic_token = ${token()} where id = ${id}`;
+  await sql`
+    update entrants
+    set pin_hash = null, claimed_at = null, pin_failures = 0,
+        pin_locked_until = null
+    where id = ${id}
+  `;
   revalidatePath("/admin");
-  return { ok: "New link generated. The old one no longer works." };
+  revalidatePath("/join");
+  return { ok: "Access reset. They can claim the name again and set a new PIN." };
 }
 
 /**

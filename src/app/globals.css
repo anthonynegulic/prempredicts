@@ -1056,3 +1056,64 @@ h3 {
     transform: none;
   }
 }
+
+/* ---------- join: claim vs sign-in tabs ---------- */
+.tabs {
+  display: flex;
+  gap: 0;
+  border: 2px solid var(--ink);
+  margin-bottom: 14px;
+  background: var(--white);
+  width: max-content;
+  max-width: 100%;
+}
+.tab {
+  font-family: var(--font-cond);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  padding: 11px 16px;
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  border-right: 2px solid var(--ink);
+  cursor: pointer;
+  min-height: 44px;
+}
+.tab:last-child {
+  border-right: 0;
+}
+.tab.on {
+  background: var(--acid);
+}
+
+/* Sign-out sits in the banner nav, so it has to read as a nav link. */
+.navbtn {
+  font-family: var(--font-cond);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.78);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.navbtn:hover {
+  color: var(--acid);
+  border-bottom-color: var(--acid);
+}
+
+/* ---------- share ---------- */
+.sharebar {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  border: 2px solid var(--ink);
+  background: var(--white);
+  padding: 14px 16px;
+}

@@ -27,9 +27,10 @@ export type Entrant = {
   season_id: number;
   display_name: string;
   slug: string;
-  magic_token: string;
   club_affiliation: string | null;
   avatar_url: string | null;
+  claimed_at: Date | null;
+  has_pin: boolean;
 };
 
 export type Pick = {
@@ -88,16 +89,21 @@ export async function getQuestions(seasonId: number): Promise<Question[]> {
 /** Roster only — never picks. Safe to render before lock. */
 export async function getEntrants(seasonId: number): Promise<Entrant[]> {
   return sql<Entrant[]>`
-    select id, season_id, display_name, slug, magic_token, club_affiliation, avatar_url
-    from entrants where season_id = ${seasonId} order by id
+    select id, season_id, display_name, slug, club_affiliation, avatar_url,
+           claimed_at, (pin_hash is not null) as has_pin
+    from entrants where season_id = ${seasonId} order by display_name, id
   `;
 }
 
-export async function getEntrantByToken(token: string): Promise<Entrant | null> {
-  if (!token) return null;
+/**
+ * The signed-in entrant. Identity comes from the session cookie, never from a
+ * URL or a form field, so nothing an entrant can edit selects whose picks load.
+ */
+export async function getEntrantById(id: number): Promise<Entrant | null> {
   const rows = await sql<Entrant[]>`
-    select id, season_id, display_name, slug, magic_token, club_affiliation, avatar_url
-    from entrants where magic_token = ${token} limit 1
+    select id, season_id, display_name, slug, club_affiliation, avatar_url,
+           claimed_at, (pin_hash is not null) as has_pin
+    from entrants where id = ${id} limit 1
   `;
   return rows[0] ?? null;
 }

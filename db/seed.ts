@@ -1,11 +1,10 @@
 /**
- * Seeds the 2026/27 season, the ten questions, and eight placeholder entrants
- * with magic links. Re-running updates question copy and scoring weights in
- * place and leaves entrants and picks alone.
+ * Seeds the 2026/27 season, the ten questions, and eight placeholder entrants.
+ * Re-running updates question copy and scoring weights in place and leaves
+ * entrants and picks alone.
  *
  *   npm run db:seed
  */
-import { randomBytes } from "node:crypto";
 import postgres from "postgres";
 import { requireEnv } from "./env";
 import { QUESTIONS } from "../src/lib/questions";
@@ -14,10 +13,6 @@ const SEASON_LABEL = "2026-27";
 // 20:00 BST, first kickoff. Stored and compared in UTC.
 const LOCK_AT = "2026-08-21T19:00:00Z";
 const ENTRANT_COUNT = 8;
-
-function token() {
-  return randomBytes(16).toString("base64url");
-}
 
 async function main() {
   const url = requireEnv("DATABASE_URL");
@@ -61,22 +56,26 @@ async function main() {
     } else {
       for (let i = 1; i <= ENTRANT_COUNT; i++) {
         await sql`
-          insert into entrants (season_id, display_name, slug, magic_token)
-          values (${season.id}, ${`Entrant ${i}`}, ${`entrant-${i}`}, ${token()})
+          insert into entrants (season_id, display_name, slug)
+          values (${season.id}, ${`Entrant ${i}`}, ${`entrant-${i}`})
         `;
       }
       console.log(`${ENTRANT_COUNT} placeholder entrants created.`);
     }
 
-    const links = await sql<{ display_name: string; magic_token: string }[]>`
-      select display_name, magic_token from entrants
-      where season_id = ${season.id} order by id
+    const roster = await sql<{ display_name: string; claimed_at: Date | null }[]>`
+      select display_name, claimed_at from entrants
+      where season_id = ${season.id} order by display_name
     `;
-    console.log("\nMagic links — rename in /admin, then DM these out:\n");
-    for (const l of links) {
-      console.log(`  ${l.display_name.padEnd(12)} /e/${l.magic_token}`);
+    console.log("\nRoster — rename these in /admin before you share the link:\n");
+    for (const r of roster) {
+      const state = r.claimed_at ? "joined" : "not joined";
+      console.log(`  ${r.display_name.padEnd(14)} ${state}`);
     }
-    console.log("");
+    console.log(
+      "\nOne link for everyone:  /join" +
+        "\nEach person claims their own name there and sets a PIN.\n"
+    );
   } finally {
     await sql.end();
   }

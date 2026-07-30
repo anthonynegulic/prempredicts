@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { CLUBS } from "@/lib/clubs";
 import { scoringLine, type PointsConfig } from "@/lib/questions";
 import { countComplete, validateEntry, type PickInput, type QuestionShape } from "@/lib/validate";
+import { ShareButton } from "@/components/ShareButton";
 import { savePicks, type SaveResult } from "./actions";
 
 export type FormQuestion = QuestionShape & {
@@ -17,11 +18,9 @@ export type FormQuestion = QuestionShape & {
 const keyOf = (k: string, i: number) => `${k}::${i}`;
 
 export function EntryForm({
-  token,
   questions,
   initial,
 }: {
-  token: string;
   questions: FormQuestion[];
   initial: Record<string, string>;
 }) {
@@ -71,7 +70,7 @@ export function EntryForm({
 
   function submit() {
     startTransition(async () => {
-      const res = await savePicks(token, picks);
+      const res = await savePicks(picks);
       setResult(res);
       if (res.ok) setSaved({ ...values });
     });
@@ -182,6 +181,12 @@ export function EntryForm({
               </fieldset>
             );
           })}
+
+          {complete && !dirty && (
+            <div style={{ margin: "6px 0 20px" }}>
+              <ShareButton complete locked={false} />
+            </div>
+          )}
 
           <div className="savebar">
             <div className="wrap savebar-in">

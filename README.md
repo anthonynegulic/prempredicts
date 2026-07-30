@@ -41,8 +41,10 @@ The three environment variables in `.env.example` are all it needs.
 | Route | Who | Pattern |
 |---|---|---|
 | `/` | anyone with the URL | 01 Flat |
+| `/join` | anyone — claim a name, set a PIN | 01 Flat |
 | `/rules` | anyone | 01 Flat |
-| `/e/<magic_token>` | one entrant | 01 Flat |
+| `/picks` | the signed-in entrant | 01 Flat |
+| `/api/share-card` | the signed-in entrant — PNG | — |
 | `/board` | anyone, **only after lock** | 02–05 by section |
 | `/admin` | passphrase | 06 Pinstripe |
 | `/admin/picks/<id>` | passphrase | 06 Pinstripe |
@@ -59,7 +61,8 @@ Before `lock_at`, an entrant sees only their own picks. This is enforced in the
 data layer, not the UI:
 
 - `getOwnPicks(entrantId)` is the only pick query reachable pre-lock, and the
-  `entrant_id` comes from the magic token, never from a client parameter.
+  `entrant_id` comes from the signed session cookie, never from a URL or a client
+  parameter.
 - `getBoard(season)` returns `null` until `lock_at` has passed. The guard sits
   inside the function, so no route can leak picks by forgetting to check, and
   other entrants' picks are never queried at all — there is no client-side
@@ -71,13 +74,35 @@ At `lock_at` everything reveals at once and the entry form becomes read-only.
 
 ## Auth
 
-Per-person magic links, pre-created by the admin. No passwords, no email, no
-OAuth. **Entrants never type their own name** — that is what stops Dave, dave
-and Davo becoming three people. Regenerating a link kills the old one
-immediately.
+**One shared join link.** Everyone opens `/join`, claims their name from the
+pre-created list, and sets a 4-digit PIN. No passwords, no email, no OAuth.
+**Entrants never type their own name** — that is what stops Dave, dave and Davo
+becoming three people; the roster is exactly who the admin added.
+
+Identity is a signed, httpOnly session cookie set on claim or sign-in — there is
+no token in any URL to copy or forward, so a shared link can never be used to
+read someone else's picks. The PIN is stored only as an `scrypt` hash and is
+what lets someone sign back in on another device. Five wrong PINs locks that
+name for 15 minutes; the admin can reset access, which clears the PIN and frees
+the name to be re-claimed **while keeping the picks** (the right behaviour for a
+forgotten PIN).
 
 Admin is a separate passphrase (`ADMIN_PASSPHRASE`), held in an HMAC-signed
-httpOnly cookie for 12 hours. It is distinct from every entrant link.
+httpOnly cookie for 12 hours. Entrant and admin cookies are signed with
+different purpose prefixes, so one can never be replayed as the other.
+
+## Share card
+
+Once all ten picks are in, `/picks` shows a **Share my picks** button. It
+fetches `/api/share-card`, a 1080×1350 branded PNG rendered server-side with
+`next/og` (Satori), and hands it to the phone's native share sheet so it lands
+in the group chat as an image; on desktop, where file sharing isn't supported,
+it downloads instead. The card is gated to the signed-in entrant and refused
+until all ten are answered, and is sent `private, no-store` so no CDN caches one
+person's picks. Satori renders only a subset of CSS — no grid, unreliable
+repeating gradients, and it drops the `inset` shorthand — so the patterns on the
+card are built from explicit flex divs and the bolt from an inline SVG
+`<pattern>`, matching the reference exactly.
 
 ## Admin edits are always logged
 

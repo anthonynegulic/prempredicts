@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
-import { getActiveSeason, getEntrantByToken, getQuestions, isLocked } from "@/lib/data";
+import { getActiveSeason, getEntrantById, getQuestions, isLocked } from "@/lib/data";
+import { getSessionEntrantId } from "@/lib/entrant-auth";
 import { validateEntry, type FieldError, type PickInput } from "@/lib/validate";
 
 export type SaveResult =
@@ -10,16 +11,20 @@ export type SaveResult =
   | { ok: false; message: string; errors?: FieldError[] };
 
 /**
- * Saves one entrant's picks. The magic token is the only credential, and the
- * entrant_id is derived from it server-side — a client cannot name a different
- * entrant to write to. The lock is re-checked here, not trusted from the UI.
+ * Saves the signed-in entrant's picks.
+ *
+ * The entrant_id comes from the signed session cookie, never from an argument,
+ * so no client can name a different entrant to write to. The lock is re-checked
+ * here rather than trusted from the UI.
  */
-export async function savePicks(
-  token: string,
-  input: PickInput[]
-): Promise<SaveResult> {
-  const entrant = await getEntrantByToken(token);
-  if (!entrant) return { ok: false, message: "That link isn't valid." };
+export async function savePicks(input: PickInput[]): Promise<SaveResult> {
+  const entrantId = await getSessionEntrantId();
+  if (!entrantId) {
+    return { ok: false, message: "You're signed out. Reload and sign in again." };
+  }
+
+  const entrant = await getEntrantById(entrantId);
+  if (!entrant) return { ok: false, message: "That entrant no longer exists." };
 
   const season = await getActiveSeason();
   if (!season || season.id !== entrant.season_id) {
@@ -79,6 +84,6 @@ export async function savePicks(
     }
   });
 
-  revalidatePath(`/e/${token}`);
+  revalidatePath("/picks");
   return { ok: true, savedAt: new Date().toISOString(), warnings };
 }

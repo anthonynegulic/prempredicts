@@ -3,17 +3,16 @@
 import { useEffect, useState } from "react";
 
 /**
- * Shows an entrant's magic link and copies it. Renders the path on the server
- * and fills in the origin on mount, so the copied value is always the full URL
- * regardless of where this is deployed.
+ * The single join link, with a copy button. The origin is filled in on mount so
+ * the copied value is the real deployed URL rather than a bare path.
  */
-export function CopyLink({ path }: { path: string }) {
+export function JoinLink() {
   const [origin, setOrigin] = useState("");
   const [done, setDone] = useState(false);
 
   useEffect(() => setOrigin(window.location.origin), []);
 
-  const full = origin ? `${origin}${path}` : path;
+  const full = origin ? `${origin}/join` : "/join";
 
   return (
     <>

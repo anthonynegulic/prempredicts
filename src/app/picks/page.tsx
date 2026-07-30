@@ -1,16 +1,20 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Banner } from "@/components/Banner";
 import { Countdown } from "@/components/Countdown";
+import { SetupNotice } from "@/components/SetupNotice";
+import { ShareButton } from "@/components/ShareButton";
 import {
   countAnswered,
-  getActiveSeason,
-  getEntrantByToken,
+  getEntrantById,
   getOwnPicks,
   getQuestions,
   isLocked,
+  loadActiveSeason,
 } from "@/lib/data";
+import { getSessionEntrantId } from "@/lib/entrant-auth";
 import { QUESTIONS } from "@/lib/questions";
+import { SignOutButton } from "./SignOutButton";
 import { EntryForm, type FormQuestion } from "./EntryForm";
 
 export const dynamic = "force-dynamic";
@@ -21,18 +25,15 @@ const slotLabelsFor = (key: string, count: number): string[] => {
   return Array.from({ length: count }, () => seed?.label ?? "Pick");
 };
 
-export default async function EntryPage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
-  const { token } = await params;
+export default async function PicksPage() {
+  const { season, error } = await loadActiveSeason();
+  if (!season) return <SetupNotice error={error} />;
 
-  const entrant = await getEntrantByToken(token);
-  if (!entrant) notFound();
+  const entrantId = await getSessionEntrantId();
+  if (!entrantId) redirect("/join");
 
-  const season = await getActiveSeason();
-  if (!season || season.id !== entrant.season_id) notFound();
+  const entrant = await getEntrantById(entrantId);
+  if (!entrant || entrant.season_id !== season.id) redirect("/join");
 
   const [questions, picks] = await Promise.all([
     getQuestions(season.id),
@@ -41,6 +42,7 @@ export default async function EntryPage({
 
   const locked = isLocked(season);
   const answered = countAnswered(questions, picks);
+  const complete = answered === questions.length;
 
   const initial: Record<string, string> = {};
   const editedAt = new Map<string, string>();
@@ -97,6 +99,7 @@ export default async function EntryPage({
         <nav className="nav" style={{ marginTop: 24 }} aria-label="Sections">
           <Link href="/rules">Scoring</Link>
           {locked ? <Link href="/board">Reveal board</Link> : null}
+          <SignOutButton />
         </nav>
       </Banner>
 
@@ -108,7 +111,10 @@ export default async function EntryPage({
             These are read-only now. Everyone&apos;s picks are on the{" "}
             <Link href="/board">reveal board</Link>.
           </div>
-          <div className="two">
+
+          <ShareButton complete={complete} locked />
+
+          <div className="two" style={{ marginTop: 20 }}>
             <div className="panel">
               <h3>Your ten</h3>
               {formQuestions.map((q) => {
@@ -130,7 +136,7 @@ export default async function EntryPage({
           </div>
         </div>
       ) : (
-        <EntryForm token={token} questions={formQuestions} initial={initial} />
+        <EntryForm questions={formQuestions} initial={initial} />
       )}
     </main>
   );

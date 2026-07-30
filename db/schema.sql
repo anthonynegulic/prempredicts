@@ -111,3 +111,21 @@ create table if not exists scorers_snapshot (
   payload     jsonb not null,
   captured_at timestamptz not null default now()
 );
+
+-- ============================================================
+-- Shared join link + PIN.
+--
+-- Replaces per-person magic links: everyone opens the same /join URL, claims
+-- their pre-created name once, and sets a short PIN so they can get back in on
+-- another device. Added with ALTER so this file stays safe to re-run against a
+-- database that was seeded before the change.
+-- ============================================================
+
+alter table entrants add column if not exists pin_hash         text;
+alter table entrants add column if not exists claimed_at       timestamptz;
+alter table entrants add column if not exists pin_failures     integer not null default 0;
+alter table entrants add column if not exists pin_locked_until timestamptz;
+
+-- magic_token is no longer an auth path. Kept (nullable) rather than dropped so
+-- the change is non-destructive; nothing reads it.
+alter table entrants alter column magic_token drop not null;

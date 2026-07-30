@@ -10,7 +10,17 @@ player mapping taking precedence, and the wildcard never scoring automatically.
 
 Run this after changing any weight in `src/lib/questions.ts`.
 
-## End to end — `node test/e2e.mjs`
+## Join, PIN and share card — `node test/e2e-join.mjs`
+
+Drives a real browser through the shared-link flow and the share PNG. Covers
+claiming a name, weak-PIN and mismatch rejection, scrypt-hashed storage, the
+first-come race guard, the 5-try lockout (including that a correct PIN is still
+refused while locked), session isolation between two entrants, `/picks`
+redirecting when signed out, the share card being gated by session and by
+completeness, the PNG rendering at 1080×1350 with `no-store`, and admin reset
+keeping the picks. Same requirements and cautions as below.
+
+## Entry, lock and admin — `node test/e2e.mjs`
 
 Drives a real browser against a running build. Covers the things that would
 ruin the competition if they broke:
